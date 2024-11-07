@@ -1,6 +1,6 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
+""" 
 import os
 from flask import Flask, request, jsonify, url_for
 from flask_cors import CORS
@@ -27,16 +27,58 @@ def sitemap():
 
 @app.route('/members', methods=['GET'])
 def handle_hello():
-
     # this is how you can use the Family datastructure by calling its methods
     members = jackson_family.get_all_members()
-    response_body = {
-        "hello": "world",
-        "family": members
-    }
-
-
+    response_body =  members
+    
     return jsonify(response_body), 200
+
+@app.route ('/member', methods=['POST'])
+def post_member():     
+     body = request.get_json(silent=True)
+     if body is None:
+        return jsonify({'msg': 'Debes enviar información en el body'}), 400
+     if 'first_name' not in body:
+        return jsonify({'msg': 'El campo first_name es obliatorio'}), 400
+     if 'age' not in body:
+        return jsonify({'msg': 'El campo age es obligatorio'}), 400
+     if 'lucky_numbers' not in body:
+        return jsonify({'msg': 'El campo lucky_numbers es obligatorio'}), 400
+     
+     member_id = body['id'] if 'id' in body else jackson_family._generateId()
+     new_member = {
+                'id': member_id,
+                'first_name': body['first_name'],
+                'last_name': jackson_family.last_name,
+                'age': body['age'],
+                'lucky_numbers': body['lucky_numbers']
+             }
+     members = jackson_family.add_member(new_member)
+     return jsonify({'msg': 'OK', 'members':  members})
+
+@app.route ('/member/<int:member_id>', methods =['DELETE'])
+def delete_family_member(member_id):
+    eliminated_member = jackson_family.delete_member(member_id)
+    if not eliminated_member:
+        return jsonify({"msg":"Miembro no encontrado"}),404
+    else:
+        return jsonify({'done': True}),200
+     
+    
+@app.route ('/member/<int:member_id>', methods=['GET'])
+def get_selected_member(member_id):
+    selected_member = jackson_family.get_member(member_id)
+    if not selected_member:
+        return jsonify({"msg": "Miembro no encontrado"}),404
+    return jsonify ({
+                'id': member_id,
+                'first_name': selected_member['first_name'],
+                'age': selected_member['age'],
+                'lucky_numbers': selected_member['lucky_numbers']
+             }),200
+    
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
